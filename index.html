@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Inspection Check</title>
+<style>
+  :root {
+    --bg: #f4f4f0;
+    --card: #ffffff;
+    --primary: #1a1a1a;
+    --secondary: #555;
+    --accent: #2563eb;
+    --accent-light: #eff6ff;
+    --ok: #16a34a;
+    --ok-light: #f0fdf4;
+    --ng: #dc2626;
+    --ng-light: #fef2f2;
+    --border: #e2e2dc;
+    --radius: 12px;
+    --font: 'Segoe UI', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); font-family: var(--font); min-height: 100vh; color: var(--primary); }
+
+  .header {
+    background: var(--primary);
+    color: white;
+    padding: 20px 20px 16px;
+    text-align: center;
+  }
+  .header h1 { font-size: 17px; font-weight: 600; letter-spacing: 0.02em; }
+  .header p { font-size: 12px; opacity: 0.6; margin-top: 3px; }
+
+  .container { max-width: 480px; margin: 0 auto; padding: 20px 16px 40px; }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 20px;
+    margin-bottom: 14px;
+  }
+
+  .card-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--secondary);
+    margin-bottom: 10px;
+  }
+
+  .location-banner {
+    background: var(--accent-light);
+    border: 1px solid #bfdbfe;
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .location-icon {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .location-icon svg { width: 18px; height: 18px; fill: white; }
+  .location-name { font-size: 16px; font-weight: 600; color: var(--accent); }
+  .location-code { font-size: 12px; color: var(--secondary); margin-top: 2px; }
+
+  .error-banner {
+    background: var(--ng-light);
+    border: 1px solid #fecaca;
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 14px;
+    text-align: center;
+    color: var(--ng);
+    font-size: 14px;
+    font-weight: 500;
+    display: none;
+  }
+
+  select, textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: var(--font);
+    color: var(--primary);
+    background: white;
+    appearance: none;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  select:focus, textarea:focus { border-color: var(--accent); }
+  textarea { resize: none; height: 80px; line-height: 1.5; }
+
+  .select-wrap { position: relative; }
+  .select-wrap::after {
+    content: '';
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    width: 0; height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid var(--secondary);
+    pointer-events: none;
+  }
+
+  .status-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .status-btn {
+    padding: 16px;
+    border-radius: 10px;
+    border: 2px solid var(--border);
+    background: white;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .status-btn.ok { color: var(--ok); }
+  .status-btn.ng { color: var(--ng); }
+  .status-btn.ok.selected { background: var(--ok-light); border-color: var(--ok); }
+  .status-btn.ng.selected { background: var(--ng-light); border-color: var(--ng); }
+  .status-sub { font-size: 11px; font-weight: 400; opacity: 0.7; display: block; margin-top: 2px; }
+
+  .photo-area {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 24px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .photo-area:hover { border-color: var(--accent); }
+  .photo-area input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .photo-icon { width: 40px; height: 40px; background: var(--bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; }
+  .photo-icon svg { width: 20px; height: 20px; stroke: var(--secondary); fill: none; stroke-width: 1.5; stroke-linecap: round; }
+  .photo-text { font-size: 14px; color: var(--secondary); }
+  .photo-sub { font-size: 12px; color: #aaa; margin-top: 4px; }
+  .photo-preview { width: 100%; border-radius: 8px; display: none; max-height: 240px; object-fit: cover; }
+  .photo-retake { margin-top: 10px; font-size: 12px; color: var(--accent); cursor: pointer; display: none; text-decoration: underline; }
+
+  .submit-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    letter-spacing: 0.02em;
+  }
+  .submit-btn:active { transform: scale(0.98); }
+  .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .success-screen {
+    display: none;
+    text-align: center;
+    padding: 40px 20px;
+  }
+  .success-icon {
+    width: 64px; height: 64px;
+    background: var(--ok-light);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 20px;
+  }
+  .success-icon svg { width: 32px; height: 32px; stroke: var(--ok); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .success-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .success-sub { font-size: 14px; color: var(--secondary); line-height: 1.6; }
+  .success-detail { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin: 20px 0; text-align: left; font-size: 13px; }
+  .success-detail div { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border); }
+  .success-detail div:last-child { border-bottom: none; }
+  .success-detail span:first-child { color: var(--secondary); }
+  .success-detail span:last-child { font-weight: 500; }
+  .new-scan-btn {
+    margin-top: 10px;
+    padding: 12px 24px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: white;
+    font-size: 14px;
+    cursor: pointer;
+    color: var(--primary);
+  }
+
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .timestamp { font-size: 12px; color: var(--secondary); text-align: right; margin-bottom: 14px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Controlled Inspection System</h1>
+  <p>Line Leader Checkpoint Check</p>
+</div>
+
+<div class="container">
+
+  <div class="error-banner" id="errorBanner">
+    Invalid QR code or unknown location. Please scan the correct QR.
+  </div>
+
+  <div id="mainForm">
+
+    <div class="location-banner" id="locationBanner">
+      <div class="location-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+      </div>
+      <div>
+        <div class="location-name" id="locationName">Loading...</div>
+        <div class="location-code" id="locationCode"></div>
+      </div>
+    </div>
+
+    <div class="timestamp" id="timestampDisplay"></div>
+
+    <div class="card">
+      <div class="card-label">Line leader</div>
+      <div class="select-wrap">
+        <select id="leaderSelect">
+          <option value="">— Select your name —</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Condition status</div>
+      <div class="status-row">
+        <button class="status-btn ok" id="btnOK" onclick="selectStatus('OK')">
+          OK
+          <span class="status-sub">Good condition</span>
+        </button>
+        <button class="status-btn ng" id="btnNG" onclick="selectStatus('NG')">
+          NG
+          <span class="status-sub">Issue found</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Photo evidence</div>
+      <div class="photo-area" id="photoArea">
+        <input type="file" id="photoInput" accept="image/*" capture="environment" onchange="handlePhoto(this)">
+        <div id="photoPlaceholder">
+          <div class="photo-icon">
+            <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </div>
+          <div class="photo-text">Tap to take photo</div>
+          <div class="photo-sub">Opens camera directly — no gallery upload</div>
+        </div>
+        <img class="photo-preview" id="photoPreview">
+      </div>
+      <div class="photo-retake" id="retakeBtn" onclick="retakePhoto()">Retake photo</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Notes (optional)</div>
+      <textarea id="notesField" placeholder="Describe any issues or observations..."></textarea>
+    </div>
+
+    <button class="submit-btn" id="submitBtn" onclick="submitInspection()">Submit Inspection</button>
+
+  </div>
+
+  <div class="success-screen" id="successScreen">
+    <div class="success-icon">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="success-title">Submitted!</div>
+    <div class="success-sub">Inspection recorded successfully.<br>Notification has been sent.</div>
+    <div class="success-detail" id="successDetail"></div>
+    <button class="new-scan-btn" onclick="resetForm()">Scan another checkpoint</button>
+  </div>
+
+</div>
+
+<script>
+  // ============================================================
+  // CONFIGURATION — UPDATE THESE WITH YOUR REAL VALUES
+  // ============================================================
+  const SUPABASE_URL = 'https://lcjdobondbefyscjblvo.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_443DCtETz89UqqcimpFM6g_IjYePT2b';
+  const RESEND_API_KEY = 're_6DhifHxA_HyBeWkRjbgEknYPwk5942pvk';
+  const SUPERVISOR_EMAIL = 'sheikh.zaim.2907@gmail.com';
+  // ============================================================
+
+  // Data — matches your Supabase tables
+  const LEADERS = [
+    { id: 1, name: 'Azni Bin Saidin',  email: 'sethzaim00@gmail.com' },
+    { id: 2, name: 'Mazwan Ikman',     email: 'sabahealthsolution@gmail.com' },
+  ];
+
+  const CHECKPOINTS = [
+    { id: 1, name: 'Schedule Waste Area',   code: 'c01' },
+    { id: 2, name: 'Annealing Filter',      code: 'c02' },
+    { id: 3, name: 'Drawing Lubricant Tank',code: 'c03' },
+    { id: 4, name: 'CBM-1 WIP',             code: 'c04' },
+    { id: 5, name: 'Wrapping Bobbin',       code: 'c05' },
+  ];
+
+  // Which leader is assigned to which checkpoints
+  const ASSIGNMENTS = {
+    1: [1, 2],       // Azni → c01, c02
+    2: [3, 4, 5],    // Mazwan → c03, c04, c05
+  };
+
+  // ---- App state ----
+  let currentCheckpoint = null;
+  let selectedStatus = null;
+  let photoFile = null;
+  let scanTime = null;
+
+  // ---- Init ----
+  function init() {
+    updateTimestamp();
+    setInterval(updateTimestamp, 30000);
+
+    const params = new URLSearchParams(window.location.search);
+    const loc = params.get('loc');
+
+    if (!loc) {
+      document.getElementById('errorBanner').style.display = 'block';
+      document.getElementById('mainForm').style.display = 'none';
+      return;
+    }
+
+    currentCheckpoint = CHECKPOINTS.find(c => c.code === loc.toLowerCase());
+    if (!currentCheckpoint) {
+      document.getElementById('errorBanner').style.display = 'block';
+      document.getElementById('mainForm').style.display = 'none';
+      return;
+    }
+
+    document.getElementById('locationName').textContent = currentCheckpoint.name;
+    document.getElementById('locationCode').textContent = 'Code: ' + currentCheckpoint.code.toUpperCase();
+    scanTime = new Date();
+
+    populateLeaders();
+  }
+
+  function updateTimestamp() {
+    const now = new Date();
+    document.getElementById('timestampDisplay').textContent =
+      now.toLocaleDateString('en-MY', { weekday:'short', day:'numeric', month:'short', year:'numeric' }) +
+      ' · ' + now.toLocaleTimeString('en-MY', { hour:'2-digit', minute:'2-digit' });
+  }
+
+  function populateLeaders() {
+    const sel = document.getElementById('leaderSelect');
+    sel.innerHTML = '<option value="">— Select your name —</option>';
+
+    // Only show leaders assigned to this checkpoint
+    LEADERS.forEach(l => {
+      const assigned = ASSIGNMENTS[l.id] || [];
+      if (assigned.includes(currentCheckpoint.id)) {
+        const opt = document.createElement('option');
+        opt.value = l.id;
+        opt.textContent = l.name;
+        sel.appendChild(opt);
+      }
+    });
+  }
+
+  function selectStatus(s) {
+    selectedStatus = s;
+    document.getElementById('btnOK').classList.toggle('selected', s === 'OK');
+    document.getElementById('btnNG').classList.toggle('selected', s === 'NG');
+  }
+
+  function handlePhoto(input) {
+    if (!input.files || !input.files[0]) return;
+    photoFile = input.files[0];
+    const reader = new FileReader();
+    reader.onload = e => {
+      const preview = document.getElementById('photoPreview');
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+      document.getElementById('photoPlaceholder').style.display = 'none';
+      document.getElementById('retakeBtn').style.display = 'block';
+    };
+    reader.readAsDataURL(photoFile);
+  }
+
+  function retakePhoto() {
+    photoFile = null;
+    document.getElementById('photoInput').value = '';
+    document.getElementById('photoPreview').style.display = 'none';
+    document.getElementById('photoPlaceholder').style.display = 'block';
+    document.getElementById('retakeBtn').style.display = 'none';
+  }
+
+  // Compress photo and convert to base64
+  function compressPhoto(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX = 800;
+          let w = img.width, h = img.height;
+          if (w > h) { if (w > MAX) { h = h * MAX / w; w = MAX; } }
+          else { if (h > MAX) { w = w * MAX / h; h = MAX; } }
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.7));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function submitInspection() {
+    const leaderId = document.getElementById('leaderSelect').value;
+    const notes = document.getElementById('notesField').value;
+
+    if (!leaderId) return alert('Please select your name.');
+    if (!selectedStatus) return alert('Please select OK or NG status.');
+    if (!photoFile) return alert('Please take a photo before submitting.');
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Submitting...';
+
+    try {
+      // 1. Compress photo and convert to base64
+      const photoData = await compressPhoto(photoFile);
+      const photoUrl = null;
+
+      // 2. Save inspection record to Supabase
+      const now = new Date().toISOString();
+      const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/inspections`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'apikey': SUPABASE_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation',
+        },
+        body: JSON.stringify({
+          leader_id: parseInt(leaderId),
+          checkpoint_id: currentCheckpoint.id,
+          status: selectedStatus,
+          photo_url: photoUrl,
+          photo_data: photoData,
+          notes: notes,
+          submitted_at: now,
+        }),
+      });
+      if (!insertRes.ok) throw new Error('Failed to save record');
+
+      // 3. Send email notification via Resend
+      const leader = LEADERS.find(l => l.id === parseInt(leaderId));
+      const timeStr = new Date().toLocaleString('en-MY', { dateStyle:'medium', timeStyle:'short' });
+      const statusColor = selectedStatus === 'OK' ? '#16a34a' : '#dc2626';
+
+      try { await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: 'Inspection System <onboarding@resend.dev>',
+          to: [SUPERVISOR_EMAIL],
+          subject: `[${selectedStatus}] ${currentCheckpoint.name} checked by ${leader.name}`,
+          html: `
+            <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+              <div style="background:#1a1a1a;color:white;padding:20px;border-radius:8px 8px 0 0">
+                <h2 style="margin:0;font-size:16px">Inspection Submitted</h2>
+              </div>
+              <div style="background:#f9f9f9;padding:20px;border:1px solid #e2e2e2;border-top:none;border-radius:0 0 8px 8px">
+                <table style="width:100%;font-size:14px;border-collapse:collapse">
+                  <tr><td style="padding:8px 0;color:#666;width:140px">Checkpoint</td><td style="padding:8px 0;font-weight:600">${currentCheckpoint.name}</td></tr>
+                  <tr><td style="padding:8px 0;color:#666">Line Leader</td><td style="padding:8px 0;font-weight:600">${leader.name}</td></tr>
+                  <tr><td style="padding:8px 0;color:#666">Status</td><td style="padding:8px 0"><span style="background:${statusColor};color:white;padding:3px 12px;border-radius:4px;font-weight:700;font-size:13px">${selectedStatus}</span></td></tr>
+                  <tr><td style="padding:8px 0;color:#666">Time</td><td style="padding:8px 0">${timeStr}</td></tr>
+                  ${notes ? `<tr><td style="padding:8px 0;color:#666">Notes</td><td style="padding:8px 0">${notes}</td></tr>` : ''}
+                </table>
+                <div style="margin-top:16px">
+                  <img src="${photoData}" style="width:100%;border-radius:6px;max-height:300px;object-fit:cover" alt="Inspection photo">
+                </div>
+              </div>
+            </div>
+          `,
+        }),
+      }); } catch(emailErr) { console.log('Email skipped:', emailErr); }
+
+      // Show success screen
+      const leader2 = LEADERS.find(l => l.id === parseInt(leaderId));
+      document.getElementById('successDetail').innerHTML = `
+        <div><span>Checkpoint</span><span>${currentCheckpoint.name}</span></div>
+        <div><span>Leader</span><span>${leader2.name}</span></div>
+        <div><span>Status</span><span style="color:${statusColor};font-weight:700">${selectedStatus}</span></div>
+        <div><span>Time</span><span>${new Date().toLocaleTimeString('en-MY',{hour:'2-digit',minute:'2-digit'})}</span></div>
+      `;
+      document.getElementById('mainForm').style.display = 'none';
+      document.getElementById('successScreen').style.display = 'block';
+
+    } catch (err) {
+      alert('Something went wrong: ' + err.message + '\n\nPlease try again.');
+      btn.disabled = false;
+      btn.innerHTML = 'Submit Inspection';
+    }
+  }
+
+  function resetForm() {
+    selectedStatus = null;
+    photoFile = null;
+    document.getElementById('leaderSelect').value = '';
+    document.getElementById('notesField').value = '';
+    document.getElementById('btnOK').classList.remove('selected');
+    document.getElementById('btnNG').classList.remove('selected');
+    retakePhoto();
+    document.getElementById('successScreen').style.display = 'none';
+    document.getElementById('mainForm').style.display = 'block';
+    document.getElementById('submitBtn').disabled = false;
+    document.getElementById('submitBtn').innerHTML = 'Submit Inspection';
+  }
+
+  init();
+</script>
+</body>
+</html>
