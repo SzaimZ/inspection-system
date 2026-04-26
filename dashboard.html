@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inspection Dashboard</title>
+<style>
+  :root {
+    --bg: #f4f4f0; --card: #ffffff; --primary: #1a1a1a; --secondary: #555;
+    --accent: #2563eb; --accent-light: #eff6ff;
+    --ok: #16a34a; --ok-light: #f0fdf4; --ng: #dc2626; --ng-light: #fef2f2;
+    --border: #e2e2dc; --radius: 12px; --font: 'Segoe UI', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); font-family: var(--font); color: var(--primary); }
+
+  /* PIN SCREEN */
+  .pin-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+  .pin-box { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 40px 32px; text-align: center; width: 320px; }
+  .pin-title { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+  .pin-sub { font-size: 13px; color: var(--secondary); margin-bottom: 24px; }
+  .pin-input { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 20px; text-align: center; letter-spacing: 8px; outline: none; font-family: var(--font); }
+  .pin-input:focus { border-color: var(--accent); }
+  .pin-btn { width: 100%; margin-top: 12px; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .pin-error { font-size: 13px; color: var(--ng); margin-top: 10px; display: none; }
+
+  /* HEADER */
+  .header { background: var(--primary); color: white; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { font-size: 16px; font-weight: 600; }
+  .header p { font-size: 12px; opacity: 0.6; margin-top: 2px; }
+  .logout-btn { font-size: 12px; color: rgba(255,255,255,0.6); cursor: pointer; border: 1px solid rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 6px; background: none; }
+
+  /* MAIN */
+  .main { display: none; }
+  .container { max-width: 900px; margin: 0 auto; padding: 24px 16px 48px; }
+
+  /* DATE PICKER */
+  .date-row { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; }
+  .date-row label { font-size: 13px; color: var(--secondary); }
+  .date-row input[type=date] { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-family: var(--font); outline: none; background: white; }
+  .date-row input[type=date]:focus { border-color: var(--accent); }
+  .filter-btn { padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .quick-btns { display: flex; gap: 6px; }
+  .quick-btn { padding: 7px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; background: white; cursor: pointer; color: var(--secondary); }
+  .quick-btn.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); font-weight: 500; }
+
+  /* STAT CARDS */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; }
+  .stat-label { font-size: 12px; color: var(--secondary); margin-bottom: 6px; }
+  .stat-value { font-size: 28px; font-weight: 700; }
+  .stat-value.ok { color: var(--ok); }
+  .stat-value.ng { color: var(--ng); }
+  .stat-value.accent { color: var(--accent); }
+
+  /* PROGRESS BAR */
+  .progress-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 24px; }
+  .progress-title { font-size: 13px; font-weight: 600; margin-bottom: 16px; }
+  .progress-row { margin-bottom: 14px; }
+  .progress-meta { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+  .progress-name { font-weight: 500; }
+  .progress-pct { color: var(--secondary); }
+  .progress-bar-bg { height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+
+  /* CHECKPOINT TABLE */
+  .table-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 24px; overflow-x: auto; }
+  .table-title { font-size: 13px; font-weight: 600; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 8px 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--secondary); border-bottom: 1px solid var(--border); }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg); }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .badge.ok { background: var(--ok-light); color: var(--ok); }
+  .badge.ng { background: var(--ng-light); color: var(--ng); }
+  .badge.pending { background: #f1f5f9; color: #64748b; }
+
+  /* PHOTO MODAL */
+  .photo-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); transition: opacity 0.15s; }
+  .photo-thumb:hover { opacity: 0.8; }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 1000; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal-box { background: var(--card); border-radius: var(--radius); padding: 20px; max-width: 480px; width: 90%; }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .modal-title { font-size: 14px; font-weight: 600; }
+  .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--secondary); line-height: 1; }
+  .modal-img { width: 100%; border-radius: 8px; max-height: 360px; object-fit: contain; background: var(--bg); }
+  .modal-meta { font-size: 12px; color: var(--secondary); margin-top: 10px; line-height: 1.8; }
+
+  .empty-state { text-align: center; padding: 40px; color: var(--secondary); font-size: 14px; }
+  .loading { text-align: center; padding: 40px; color: var(--secondary); font-size: 14px; }
+  .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- PIN SCREEN -->
+<div class="pin-screen" id="pinScreen">
+  <div class="pin-box">
+    <div class="pin-title">Supervisor Access</div>
+    <div class="pin-sub">Enter your PIN to view the dashboard</div>
+    <input class="pin-input" type="password" id="pinInput" maxlength="6" placeholder="••••••" onkeydown="if(event.key==='Enter') checkPin()">
+    <button class="pin-btn" onclick="checkPin()">Enter</button>
+    <div class="pin-error" id="pinError">Incorrect PIN. Please try again.</div>
+  </div>
+</div>
+
+<!-- MAIN DASHBOARD -->
+<div class="main" id="mainDash">
+  <div class="header">
+    <div>
+      <h1>Inspection Dashboard</h1>
+      <p>Supervisor view</p>
+    </div>
+    <button class="logout-btn" onclick="logout()">Lock</button>
+  </div>
+
+  <div class="container">
+
+    <!-- DATE FILTER -->
+    <div class="date-row">
+      <div class="quick-btns">
+        <button class="quick-btn" id="qToday" onclick="quickFilter('today')">Today</button>
+        <button class="quick-btn" id="qWeek" onclick="quickFilter('week')">This week</button>
+        <button class="quick-btn" id="qMonth" onclick="quickFilter('month')">This month</button>
+      </div>
+      <label>From</label>
+      <input type="date" id="dateFrom">
+      <label>To</label>
+      <input type="date" id="dateTo">
+      <button class="filter-btn" onclick="loadData()">View</button>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Total submissions</div><div class="stat-value accent" id="statTotal">—</div></div>
+      <div class="stat-card"><div class="stat-label">OK</div><div class="stat-value ok" id="statOK">—</div></div>
+      <div class="stat-card"><div class="stat-label">NG (issues found)</div><div class="stat-value ng" id="statNG">—</div></div>
+      <div class="stat-card"><div class="stat-label">Completion rate</div><div class="stat-value accent" id="statRate">—</div></div>
+    </div>
+
+    <!-- COMPLETION BY LEADER -->
+    <div class="progress-card">
+      <div class="progress-title">Completion by leader</div>
+      <div id="leaderProgress"><div class="loading"><span class="spinner"></span>Loading...</div></div>
+    </div>
+
+    <!-- INSPECTION RECORDS TABLE -->
+    <div class="table-card">
+      <div class="table-title">Inspection records</div>
+      <div id="tableWrap"><div class="loading"><span class="spinner"></span>Loading...</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- PHOTO MODAL -->
+<div class="modal-overlay" id="photoModal" onclick="closeModal(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Photo</div>
+      <button class="modal-close" onclick="document.getElementById('photoModal').classList.remove('open')">✕</button>
+    </div>
+    <img class="modal-img" id="modalImg" src="" alt="Inspection photo">
+    <div class="modal-meta" id="modalMeta"></div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // CONFIGURATION — REPLACE WITH YOUR REAL VALUES
+  // ============================================================
+  const SUPABASE_URL = 'https://lcjdobondbefyscjblvo.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_443DCtETz89UqqcimpFM6g_IjYePT2b';
+  const DASHBOARD_PIN = '647400';
+  // ============================================================
+
+  const LEADERS = [
+    { id: 1, name: 'Azni Bin Saidin' },
+    { id: 2, name: 'Mazwan Ikman' },
+  ];
+
+  const CHECKPOINTS = [
+    { id: 1, name: 'Schedule Waste Area',    code: 'c01' },
+    { id: 2, name: 'Annealing Filter',       code: 'c02' },
+    { id: 3, name: 'Drawing Lubricant Tank', code: 'c03' },
+    { id: 4, name: 'CBM-1 WIP',              code: 'c04' },
+    { id: 5, name: 'Wrapping Bobbin',        code: 'c05' },
+  ];
+
+  const ASSIGNMENTS = {
+    1: [1, 2],
+    2: [3, 4, 5],
+  };
+
+  // PIN
+  function checkPin() {
+    const val = document.getElementById('pinInput').value;
+    if (val === DASHBOARD_PIN) {
+      document.getElementById('pinScreen').style.display = 'none';
+      document.getElementById('mainDash').style.display = 'block';
+      quickFilter('today');
+    } else {
+      document.getElementById('pinError').style.display = 'block';
+      document.getElementById('pinInput').value = '';
+    }
+  }
+
+  function logout() {
+    document.getElementById('pinScreen').style.display = 'flex';
+    document.getElementById('mainDash').style.display = 'none';
+    document.getElementById('pinInput').value = '';
+    document.getElementById('pinError').style.display = 'none';
+  }
+
+  // DATE HELPERS
+  function toDateStr(d) { return d.toISOString().split('T')[0]; }
+
+  function quickFilter(type) {
+    const today = new Date();
+    let from, to;
+    if (type === 'today') {
+      from = to = toDateStr(today);
+    } else if (type === 'week') {
+      const day = today.getDay();
+      const mon = new Date(today); mon.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
+      from = toDateStr(mon); to = toDateStr(today);
+    } else if (type === 'month') {
+      from = toDateStr(new Date(today.getFullYear(), today.getMonth(), 1));
+      to = toDateStr(today);
+    }
+    document.getElementById('dateFrom').value = from;
+    document.getElementById('dateTo').value = to;
+    document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('q' + type.charAt(0).toUpperCase() + type.slice(1)).classList.add('active');
+    loadData();
+  }
+
+  // FETCH DATA
+  async function loadData() {
+    const from = document.getElementById('dateFrom').value;
+    const to = document.getElementById('dateTo').value;
+    if (!from || !to) return alert('Please select a date range.');
+
+    const fromISO = from + 'T00:00:00.000Z';
+    const toISO = to + 'T23:59:59.999Z';
+
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/inspections?submitted_at=gte.${fromISO}&submitted_at=lte.${toISO}&order=submitted_at.desc`,
+        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+      );
+      if (!res.ok) throw new Error('Failed to fetch data');
+      const data = await res.json();
+      renderDashboard(data);
+    } catch (err) {
+      document.getElementById('tableWrap').innerHTML = `<div class="empty-state">Error loading data: ${err.message}</div>`;
+    }
+  }
+
+  function renderDashboard(data) {
+    // Stats
+    const total = data.length;
+    const okCount = data.filter(r => r.status === 'OK').length;
+    const ngCount = data.filter(r => r.status === 'NG').length;
+    const totalPossible = CHECKPOINTS.length;
+    const rate = total === 0 ? 0 : Math.round((total / totalPossible) * 100);
+
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statOK').textContent = okCount;
+    document.getElementById('statNG').textContent = ngCount;
+    document.getElementById('statRate').textContent = Math.min(rate, 100) + '%';
+
+    // Leader progress
+    const leaderDiv = document.getElementById('leaderProgress');
+    leaderDiv.innerHTML = '';
+    LEADERS.forEach(l => {
+      const assigned = (ASSIGNMENTS[l.id] || []).length;
+      const done = data.filter(r => r.leader_id === l.id).length;
+      const pct = assigned === 0 ? 0 : Math.min(Math.round((done / assigned) * 100), 100);
+      const color = pct === 100 ? '#16a34a' : pct >= 50 ? '#2563eb' : '#dc2626';
+      leaderDiv.innerHTML += `
+        <div class="progress-row">
+          <div class="progress-meta">
+            <span class="progress-name">${l.name}</span>
+            <span class="progress-pct">${done} / ${assigned} checkpoints (${pct}%)</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width:${pct}%;background:${color}"></div>
+          </div>
+        </div>`;
+    });
+
+    // Table
+    const wrap = document.getElementById('tableWrap');
+    if (data.length === 0) {
+      wrap.innerHTML = '<div class="empty-state">No inspections found for this date range.</div>';
+      return;
+    }
+
+    let rows = '';
+    data.forEach(r => {
+      const leader = LEADERS.find(l => l.id === r.leader_id);
+      const checkpoint = CHECKPOINTS.find(c => c.id === r.checkpoint_id);
+      const time = new Date(r.submitted_at).toLocaleString('en-MY', { dateStyle:'short', timeStyle:'short' });
+      const statusBadge = r.status === 'OK'
+        ? '<span class="badge ok">OK</span>'
+        : '<span class="badge ng">NG</span>';
+      const photoCell = r.photo_data
+        ? `<img class="photo-thumb" src="${r.photo_data}" onclick="openModal('${r.photo_data}','${checkpoint ? checkpoint.name : ''}','${leader ? leader.name : ''}','${r.status}','${time}','${r.notes || ''}')">`
+        : '<span style="color:#aaa;font-size:12px">No photo</span>';
+      rows += `
+        <tr>
+          <td>${time}</td>
+          <td>${leader ? leader.name : r.leader_id}</td>
+          <td>${checkpoint ? checkpoint.name : r.checkpoint_id}</td>
+          <td>${statusBadge}</td>
+          <td>${r.notes || '<span style="color:#aaa">—</span>'}</td>
+          <td>${photoCell}</td>
+        </tr>`;
+    });
+
+    wrap.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Leader</th>
+            <th>Checkpoint</th>
+            <th>Status</th>
+            <th>Notes</th>
+            <th>Photo</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function openModal(src, checkpoint, leader, status, time, notes) {
+    document.getElementById('modalImg').src = src;
+    document.getElementById('modalTitle').textContent = checkpoint;
+    document.getElementById('modalMeta').innerHTML =
+      `<b>Leader:</b> ${leader}<br>` +
+      `<b>Status:</b> ${status}<br>` +
+      `<b>Time:</b> ${time}` +
+      (notes ? `<br><b>Notes:</b> ${notes}` : '');
+    document.getElementById('photoModal').classList.add('open');
+  }
+
+  function closeModal(e) {
+    if (e.target === document.getElementById('photoModal')) {
+      document.getElementById('photoModal').classList.remove('open');
+    }
+  }
+</script>
+</body>
+</html>
